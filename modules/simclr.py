@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torchvision
 from modules.resnet_hacks import modify_resnet_model
+from fastai2.vision.all import *
 
 from .identity import Identity
 
@@ -18,7 +19,7 @@ class SimCLR(nn.Module):
         self.n_features = n_features
 
         # Replace the fc layer with an Identity function
-        self.encoder.fc = Identity()
+        self.encoder[-1] = Identity()
 
         # We use a MLP with one hidden layer to obtain z_i = g(h_i) = W(2)σ(W(1)h_i) where σ is a ReLU non-linearity.
         self.projector = nn.Sequential(
@@ -29,13 +30,13 @@ class SimCLR(nn.Module):
 
     def get_resnet(self, name):
         resnets = {
-            "resnet18": torchvision.models.resnet18(),
-            "resnet50": torchvision.models.resnet50(),
+            "resnet18": xresnet18(),
+            "resnet50": xresnet50(),
         }
         if name not in resnets.keys():
             raise KeyError(f"{name} is not a valid ResNet version")
         return modify_resnet_model(
-            resnets[name], cifar_stem=self.args.dataset.startswith("CIFAR"), v1=True
+            resnets[name], cifar_stem=self.args.dataset.startswith("CIFAR"), v1=False
         )
 
     def forward(self, x_i, x_j):
